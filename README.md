@@ -74,7 +74,6 @@ uv run python test_tool_direct.py
 - `gemini_enterprise_connector_agent_sample/`: Contains the agent and tool code.
     - `agent.py`: Defines the ADK Agent and registers the tool.
     - `tool.py`: Implements the `search_datastore` function with Discovery Engine logic and OAuth handling.
-- `test_tool_direct.py`: A script to test the tool logic in isolation.
 - `GEMINI.md`: Quick reference documentation for the agent.
 
 ## Authentication Flow
