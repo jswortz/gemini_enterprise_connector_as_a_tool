@@ -6,7 +6,7 @@ This project implements a Google ADK agent that interfaces with a specific Googl
 
 - **Datastore Search**: specific tool `search_datastore` to query a configured Google Cloud Discovery Engine Datastore.
 - **Authentication**: Implements OAuth2 flow using ADK's `ToolContext` to securely access the datastore on behalf of the user.
-- **Gemini Integration**: Uses Gemini 1.5 Flash (configurable) as the underlying model.
+- **Gemini Integration**: Uses Gemini 2.5 model (configurable) as the underlying model.
 
 ## Prerequisites
 
