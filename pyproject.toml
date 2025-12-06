@@ -1,0 +1,11 @@
+[project]
+name = "gemini-enterprise-connector-as-a-tool"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "google-adk>=1.15.1",
+    "google-cloud-discoveryengine>=0.15.0",
+    "python-dotenv>=1.0.0",
+]
