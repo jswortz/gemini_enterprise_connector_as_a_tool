@@ -12,10 +12,15 @@ The agent is pre-configured to connect to the following Datastore:
 
 ## Environment Variables
 
-Ensure your `.env` file contains:
+Ensure your `.env` file contains (see `.env.template`):
 
 ```env
 PROJECT_ID=your-google-cloud-project-id
+OAUTH_CLIENT_ID=your-oauth-client-id
+OAUTH_CLIENT_SECRET=your-oauth-client-secret
+GOOGLE_CLOUD_PROJECT=your-google-cloud-project-id
+GOOGLE_CLOUD_LOCATION=us-central1
+GOOGLE_GENAI_USE_VERTEXAI=TRUE
 ```
 
 ## OAuth Configuration

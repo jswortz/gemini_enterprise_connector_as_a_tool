@@ -19,12 +19,20 @@ This project implements a Google ADK agent that interfaces with a specific Googl
 
 1.  **Clone the repository** (if applicable).
 
-2.  **Configure Environment Variables**:
-    Create a `.env` file in the root directory (or ensure it exists) with your Google Cloud Project ID:
+2.    **Configure Environment Variables**:
+    Copy `.env.template` to `.env` and fill in your values:
+    ```bash
+    cp .env.template .env
+    ```
+    
+    Ensure your `.env` contains:
     ```env
-    PROJECT_ID=your-project-id
-    # LOCATION is hardcoded to 'global' in the tool, but can be added here for reference
-    LOCATION=global
+    PROJECT_ID=your-google-cloud-project-id
+    OAUTH_CLIENT_ID=your-oauth-client-id
+    OAUTH_CLIENT_SECRET=your-oauth-client-secret
+    GOOGLE_CLOUD_PROJECT=your-google-cloud-project-id
+    GOOGLE_CLOUD_LOCATION=us-central1
+    GOOGLE_GENAI_USE_VERTEXAI=TRUE
     ```
 
 3.  **Install Dependencies**:
