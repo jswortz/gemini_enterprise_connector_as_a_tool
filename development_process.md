@@ -8,7 +8,7 @@ The **Gemini Enterprise Connector Agent** is a specialized Google ADK (Agent Dev
 
 **Key Requirements**:
 *   **Target Datastore**: `drive-files_1759434882635_google_drive` (Location: `global`).
-*   **Authentication**: Must use secure OAuth2/ADC patterns compatible with Google Workspace.
+*   **Authentication**: Must use secure OAuth2 patterns via ADK's `ToolContext` compatible with Google Workspace.
 *   **Context**: Must support multi-turn conversations (not just single-shot search).
 
 **Architecture Decisions**:
@@ -25,9 +25,9 @@ The **Gemini Enterprise Connector Agent** is a specialized Google ADK (Agent Dev
 The core logic resides in `tool.py`. Key implementation details include:
 
 *   **Authentication Strategy**:
-    *   Implemented **Application Default Credentials (ADC)** using `google.auth.default()`.
-    *   Scoped to `discoveryengine.readwrite` and `cloud-platform`.
-    *   **Auto-Refresh**: Added logic to check `creds.valid` and refresh tokens automatically using `creds.refresh(Request())`.
+    *   Implemented **OAuth2** using ADK's `ToolContext`.
+    *   **Credential Management**: The agent accesses the user's OAuth credentials from `tool_context`, ensuring secure, user-scoped access to the datastore.
+    *   **State Persistence**: Both the OAuth token and the active `conversation_name` are stored in `tool_context.state` to maintain continuity across multiple interaction turns.
 
 *   **Session Management**:
     *   Leveraged ADK's `ToolContext` to persist a `conversation_name` across tool calls.
