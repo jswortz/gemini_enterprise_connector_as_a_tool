@@ -13,39 +13,41 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-PROJECT_ID = "679926387543"
-LOCATION = "global"
-DATASTORE_ID = "drive-files_1759434882635_google_drive"
-COLLECTION_ID = "default_collection"
+PROJECT_ID = "679926387543" # Keep for reference or remove if unused
+# LOCATION = "global" # Unused for Jira
+# DATASTORE_ID = "jira_1759440079662_issue" # Unused for Jira
+# COLLECTION_ID = "jira_1759440079662" # Unused for Jira
 
-def search_datastore(query: str, tool_context: ToolContext) -> str:
+def perform_jira_action(query: str, tool_context: ToolContext) -> str:
     """
-    Searches the Gemini Enterprise Datastore for documents matching the query using the Conversational API via REST.
+    Performs an action in Jira using the authenticated user's credentials.
 
     Args:
-        query: The search query string.
+        query: The action to perform or query to run.
         tool_context: The tool context provided by ADK.
 
     Returns:
-        A string summary of the search results or conversation reply.
+        A string summary of the action result.
     """
-    print(f"DEBUG: Entering search_datastore with query: {query}")
-    if not PROJECT_ID:
-        return "Error: PROJECT_ID not found in environment variables."
+    print(f"DEBUG: Entering perform_jira_action with query: {query}")
 
-    TOKEN_CACHE_KEY = "datastore_oauth_token"
-    CONVERSATION_CACHE_KEY = "gemini_conversation_name"
-    SCOPES = ["https://www.googleapis.com/auth/cloud-platform", "https://www.googleapis.com/auth/discoveryengine.readwrite"]
+    TOKEN_CACHE_KEY = "jira_oauth_token"
+    # Standard Jira Cloud scopes
+    SCOPES = ["read:jira-work", "write:jira-work", "offline_access"]
 
-    # Define the AuthConfig for Google OAuth2
+    # Define the AuthConfig for Jira OAuth2
     auth_config = AuthConfig(
         auth_scheme=OAuth2(
             type=SecuritySchemeType.oauth2,
             flows=OAuthFlows(
                 authorizationCode=OAuthFlowAuthorizationCode(
-                    authorizationUrl="https://accounts.google.com/o/oauth2/auth",
-                    tokenUrl="https://oauth2.googleapis.com/token",
-                    scopes={"https://www.googleapis.com/auth/cloud-platform": "Access Cloud Platform", "https://www.googleapis.com/auth/discoveryengine.readwrite": "Access Discovery Engine"}
+                    authorizationUrl="https://auth.atlassian.com/authorize",
+                    tokenUrl="https://auth.atlassian.com/oauth/token",
+                    scopes={
+                        "read:jira-work": "Read Jira data",
+                        "write:jira-work": "Write Jira data",
+                        "offline_access": "Access data offline"
+                    }
                 )
             )
         ),
@@ -53,7 +55,10 @@ def search_datastore(query: str, tool_context: ToolContext) -> str:
             auth_type=AuthCredentialTypes.OAUTH2,
             oauth2=OAuth2Auth(
                 client_id=os.getenv("OAUTH_CLIENT_ID"),
-                client_secret=os.getenv("OAUTH_CLIENT_SECRET")
+                client_secret=os.getenv("OAUTH_CLIENT_SECRET"),
+                # Jira requires audience for offline_access sometimes, but usually just scopes are enough.
+                # Note: Atlassian might require 'audience' parameter in the authorization URL for some flows,
+                # but standard OAuth2 flow usually handles it via scopes.
             )
         )
     )
@@ -66,6 +71,8 @@ def search_datastore(query: str, tool_context: ToolContext) -> str:
         try:
             creds = Credentials.from_authorized_user_info(cached_token_info, SCOPES)
             if not creds.valid and creds.expired and creds.refresh_token:
+                # Note: Google's Credentials.refresh might send parameters specific to Google.
+                # If this fails for Jira, we might need a custom refresh logic.
                 creds.refresh(Request())
                 tool_context.state[TOKEN_CACHE_KEY] = json.loads(creds.to_json())
             elif not creds.valid:
@@ -86,7 +93,7 @@ def search_datastore(query: str, tool_context: ToolContext) -> str:
             creds = Credentials(
                 token=access_token,
                 refresh_token=refresh_token,
-                token_uri="https://oauth2.googleapis.com/token",
+                token_uri="https://auth.atlassian.com/oauth/token",
                 client_id=os.getenv("OAUTH_CLIENT_ID"),
                 client_secret=os.getenv("OAUTH_CLIENT_SECRET"),
                 scopes=SCOPES,
@@ -96,9 +103,9 @@ def search_datastore(query: str, tool_context: ToolContext) -> str:
     # Step 3: Initiate Authentication Request
     if not creds:
         tool_context.request_credential(auth_config)
-        return "Please authenticate to access the datastore."
+        return "Please authenticate to access Jira."
 
-    # Step 4: Make Authenticated API Call (Conversational REST API)
+    # Step 4: Make Authenticated API Call
     try:
         # Ensure token is fresh
         if not creds.valid:
@@ -108,75 +115,36 @@ def search_datastore(query: str, tool_context: ToolContext) -> str:
         headers = {
             "Authorization": f"Bearer {creds.token}",
             "Content-Type": "application/json",
-            "x-goog-user-project": PROJECT_ID
+            "Accept": "application/json"
         }
 
-        # Check for existing conversation
-        conversation_name = tool_context.state.get(CONVERSATION_CACHE_KEY)
-        base_url = "https://discoveryengine.googleapis.com/v1beta"
-        parent = f"projects/{PROJECT_ID}/locations/{LOCATION}/collections/{COLLECTION_ID}/dataStores/{DATASTORE_ID}"
-
-        if not conversation_name:
-            # Create a new conversation
-            create_url = f"{base_url}/{parent}/conversations"
-            create_payload = {
-                "userPseudoId": "admin@jwortz.altostrat.com"
-            }
-            print(f"DEBUG: Creating conversation at {create_url} with payload {create_payload}")
-            create_response = requests.post(create_url, headers=headers, json=create_payload)
-            create_response.raise_for_status()
-            conversation_data = create_response.json()
-            conversation_name = conversation_data.get("name")
-            tool_context.state[CONVERSATION_CACHE_KEY] = conversation_name
-            print(f"DEBUG: Created new conversation: {conversation_name}")
-        else:
-            print(f"DEBUG: Using existing conversation: {conversation_name}")
-
-        # Converse
-        converse_url = f"{base_url}/{conversation_name}:converse"
-        serving_config = f"{parent}/servingConfigs/default_search"
+        # Placeholder for Jira API call
+        # To make a real call, we need the cloudid.
+        # Usually, we first call https://api.atlassian.com/oauth/token/accessible-resources
         
-        converse_payload = {
-            "query": {"input": query},
-            "servingConfig": serving_config
-        }
+        resources_url = "https://api.atlassian.com/oauth/token/accessible-resources"
+        print(f"DEBUG: Fetching accessible resources from {resources_url}")
+        resources_response = requests.get(resources_url, headers=headers)
+        resources_response.raise_for_status()
+        resources = resources_response.json()
         
-        print(f"DEBUG: Conversing at {converse_url}")
-        converse_response = requests.post(converse_url, headers=headers, json=converse_payload)
+        if not resources:
+            return "No accessible Jira resources found."
+            
+        # Use the first available resource
+        cloud_id = resources[0]['id']
+        site_name = resources[0]['name']
         
-        # Handle 404 (Conversation not found/expired)
-        if converse_response.status_code == 404:
-             print("DEBUG: Conversation not found (404), clearing cache and retrying creation.")
-             tool_context.state[CONVERSATION_CACHE_KEY] = None
-             return "Session expired. Please try your request again to start a new session."
+        # Example: Get Myself
+        myself_url = f"https://api.atlassian.com/ex/jira/{cloud_id}/rest/api/3/myself"
+        print(f"DEBUG: Fetching myself from {myself_url}")
+        myself_response = requests.get(myself_url, headers=headers)
+        myself_response.raise_for_status()
+        myself_data = myself_response.json()
         
-        # Handle 403 (Permission Denied / Consumer Account)
-        if converse_response.status_code == 403:
-             print(f"DEBUG: Permission Denied (403): {converse_response.text}")
-             # Clear cache just in case, though it might be an account issue
-             tool_context.state[CONVERSATION_CACHE_KEY] = None
-             return f"Permission Denied: {converse_response.json().get('error', {}).get('message', 'Unknown error')}. Please ensure you are authenticated with a Workspace account, not a consumer (Gmail) account."
-
-        converse_response.raise_for_status()
-        response_data = converse_response.json()
+        display_name = myself_data.get("displayName", "Unknown User")
         
-        reply = response_data.get("reply", {}).get("reply", "No reply text found.")
-        
-        # Format output with citations if available
-        output = f"Reply: {reply}\n"
-        
-        search_results = response_data.get("searchResults", [])
-        if search_results:
-            output += "\n--- Supporting Documents ---\n"
-            for result in search_results:
-                doc_data = result.get("document", {}).get("derivedStructData", {})
-                title = doc_data.get("title", "No Title")
-                link = doc_data.get("link", "No Link")
-                snippets = doc_data.get("snippets", [])
-                snippet = snippets[0].get("snippet", "") if snippets else ""
-                output += f"Title: {title}\nLink: {link}\nSnippet: {snippet}\n\n"
-
-        return output
+        return f"Successfully authenticated with Jira site '{site_name}'. User: {display_name}. Query received: {query}"
 
     except requests.exceptions.RequestException as e:
         error_msg = f"API Request Error: {str(e)}"
@@ -184,4 +152,4 @@ def search_datastore(query: str, tool_context: ToolContext) -> str:
              error_msg += f"\nResponse: {e.response.text}"
         return error_msg
     except Exception as e:
-        return f"Error conversing with datastore: {str(e)}"
+        return f"Error interacting with Jira: {str(e)}"
